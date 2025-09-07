@@ -30,7 +30,7 @@
 
 ## 🚧 Project Status
 
-The website is **not live yet**. A live demo link will be added here in the future:
+
 
 Live Demo
 Visit the live site here:
