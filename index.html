@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Apna Medical Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .stat-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .stat-card:hover {
+            transform: scale(1.03);
+        }
+
+        .small-list {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        #billContainer,
+        #chartContainer {
+            display: none;
+            background: white;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Alert container styles */
+        #alertContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-5">
+        <!-- Alert container for showing messages -->
+        <div id="alertContainer"></div>
+
+        <h1 class="mb-4 text-center">🩺 Apna Medical Manager</h1>
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5>Total Medicines</h5>
+                    <h2 id="totalMedicines">0</h2>
+                </div>
+            </div>
+            <div class="card stat-card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h5>Low Stock</h5>
+                    <h2 id="lowStock">0</h2>
+                </div>
+            </div>
+            <div class="card stat-card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h5>Expired Medicines</h5>
+                    <h2 id="expiredCount">0</h2>
+                </div>
+            </div>
+            <div class="card stat-card bg-info text-dark">
+                <div class="card-body text-center">
+                    <h5>Expiring Soon</h5>
+                    <div id="expiringSoonList" class="small-list mt-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3 d-flex justify-content-between">
+            <input type="text" id="searchBox" class="form-control w-50" placeholder="🔍 Search medicine..." />
+            <button class="btn btn-outline-primary" onclick="toggleChart()">📊 View Profit Chart</button>
+        </div>
+
+        <h3 class="mb-3">📦 Medicine Stock</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered bg-white">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Buy ₹</th>
+                        <th>Sell ₹</th>
+                        <th>Profit ₹</th>
+                        <th>Expiry</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="medicineTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Clear All Medicines Button -->
+        <button class="btn btn-outline-danger mt-3" onclick="clearAllMedicines()">🗑️ Clear All Medicines</button>
+
+        <h4 class="mt-5">➕ Add New Medicine</h4>
+        <form id="addMedicineForm" class="row g-3 mt-2 needs-validation" novalidate>
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Medicine Name" id="medName" required />
+                <div class="invalid-feedback">Please enter medicine name.</div>
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" placeholder="Quantity" id="medQty" required min="1" />
+                <div class="invalid-feedback">Quantity must be at least 1.</div>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" class="form-control" placeholder="Buy ₹" id="medBuy" required min="0.01" />
+                <div class="invalid-feedback">Enter valid buy price.</div>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" class="form-control" placeholder="Sell ₹" id="medSell" required min="0.01" />
+                <div class="invalid-feedback">Enter valid sell price.</div>
+            </div>
+            <div class="col-md-2">
+                <input type="month" class="form-control" id="medExpiry" required />
+                <div class="invalid-feedback">Please select expiry date.</div>
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </div>
+        </form>
+
+        <div id="billContainer"></div>
+        <div id="chartContainer">
+            <h5>Monthly Profit Summary (Placeholder)</h5>
+            <p>📊 Chart feature coming soon!</p>
+        </div>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let medicines = JSON.parse(localStorage.getItem("medicines")) || [];
+
+        function saveData() {
+            localStorage.setItem("medicines", JSON.stringify(medicines));
+        }
+
+        function showAlert(message, type = "success", duration = 3000) {
+            const alertContainer = document.getElementById("alertContainer");
+            const alertId = "alert-" + Date.now();
+
+            const alertDiv = document.createElement("div");
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.role = "alert";
+            alertDiv.id = alertId;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            alertContainer.appendChild(alertDiv);
+
+            setTimeout(() => {
+                const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                alert.close();
+            }, duration);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById("medicineTableBody");
+            const search = document.getElementById("searchBox").value.toLowerCase();
+            tbody.innerHTML = "";
+
+            let expiredCount = 0;
+            let expiringSoonList = [];
+            const now = new Date();
+
+            medicines.forEach((med, index) => {
+                if (!med.name.toLowerCase().includes(search)) return;
+
+                const expiryDate = new Date(med.expiry + "-01");
+                const daysToExpiry = Math.floor((expiryDate - now) / (1000 * 60 * 60 * 24));
+
+                let row = document.createElement("tr");
+
+                if (expiryDate < now) {
+                    row.classList.add("table-danger");
+                    expiredCount++;
+                } else if (daysToExpiry <= 30) {
+                    row.classList.add("table-warning");
+                    expiringSoonList.push(`${med.name} (${med.expiry})`);
+                } else if (med.qty === 0) {
+                    row.classList.add("table-secondary");
+                } else if (med.qty <= 5) {
+                    row.classList.add("table-warning");
+                }
+
+                row.innerHTML = `
+          <td>${med.name}</td>
+          <td>${med.qty}</td>
+          <td>${med.buy.toFixed(2)}</td>
+          <td>${med.sell.toFixed(2)}</td>
+          <td>${(med.sell - med.buy).toFixed(2)}</td>
+          <td>${med.expiry}</td>
+          <td>
+            <button class="btn btn-sm btn-success" onclick="buyMedicine(${index})">Buy</button>
+            <button class="btn btn-sm btn-danger" onclick="sellMedicine(${index})">Sell</button>
+            <button class="btn btn-sm btn-outline-dark" onclick="deleteMedicine(${index})">Delete</button>
+          </td>
+        `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById("totalMedicines").textContent = medicines.length;
+            document.getElementById("lowStock").textContent = medicines.filter(m => m.qty <= 5 && m.qty > 0).length;
+            document.getElementById("expiredCount").textContent = expiredCount;
+            const expBox = document.getElementById("expiringSoonList");
+            expBox.innerHTML = expiringSoonList.length
+                ? expiringSoonList.map(m => `• ${m}`).join("<br>")
+                : "No upcoming expiries.";
+            saveData();
+        }
+
+        function buyMedicine(index) {
+            let amount = parseInt(prompt("Kitni quantity buy karni hai?"));
+            if (!isNaN(amount) && amount > 0) {
+                medicines[index].qty += amount;
+                renderTable();
+                showAlert("Medicine successfully purchased!", "success");
+            } else {
+                showAlert("Invalid quantity!", "danger");
+            }
+        }
+
+        function sellMedicine(index) {
+            let amount = parseInt(prompt("Kitni quantity sell karni hai?"));
+            if (!isNaN(amount) && amount > 0 && medicines[index].qty >= amount) {
+                if (confirm("Kya aap billing karna chahenge?")) {
+                    showBill(index, amount);
+                }
+                medicines[index].qty -= amount;
+                renderTable();
+                showAlert("Medicine successfully sold!", "success");
+            } else {
+                showAlert("Invalid ya zyada quantity!", "danger");
+            }
+        }
+
+       function showBill(index, amount) {
+    const billDiv = document.getElementById("billContainer");
+    const med = medicines[index];
+    const total = (med.sell * amount).toFixed(2);
+
+    // Generate unique invoice number
+    const invoiceNum = "INV" + Date.now();
+
+    // Convert total to words (basic version)
+    function numberToWords(num) {
+        // For simplicity, handle numbers till 9999 here
+        const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+        const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+        const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+
+        if (num < 10) return ones[num];
+        else if (num >= 10 && num < 20) return teens[num - 10];
+        else if (num < 100) return tens[Math.floor(num / 10)] + " " + ones[num % 10];
+        else if (num < 1000) return ones[Math.floor(num / 100)] + " Hundred " + numberToWords(num % 100);
+        else if (num < 10000) return ones[Math.floor(num / 1000)] + " Thousand " + numberToWords(num % 1000);
+        else return num;
+    }
+
+    const totalWords = numberToWords(Math.floor(total));
+
+    billDiv.style.display = "block";
+    billDiv.innerHTML = `
+        <div class="p-3 border rounded bg-light">
+          <h3 class="text-center mb-3">Apna Medical Manager</h3>
+          <p><strong>Invoice No:</strong> ${invoiceNum}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+          <hr />
+          <p><strong>Medicine:</strong> ${med.name}</p>
+          <p><strong>Quantity:</strong> ${amount}</p>
+          <p><strong>Unit Price:</strong> ₹${med.sell.toFixed(2)}</p>
+          <p><strong>Total Price:</strong> ₹${total}</p>
+          <p><em>(${totalWords} Rupees Only)</em></p>
+          <hr />
+          <p class="text-center">Thank you for shopping with us!</p>
+        </div>
+    `;
+}
+
+        function deleteMedicine(index) {
+            if (confirm("Kya aap is medicine ko delete karna chahte hain?")) {
+                medicines.splice(index, 1);
+                renderTable();
+                showAlert("Medicine deleted.", "warning");
+            }
+        }
+
+        function toggleChart() {
+            const chart = document.getElementById("chartContainer");
+            chart.style.display = chart.style.display === "block" ? "none" : "block";
+        }
+
+        function clearAllMedicines() {
+            if (confirm("Kya aap sach me sabhi medicines delete karna chahte hain?")) {
+                localStorage.removeItem("medicines");
+                medicines = [];
+                renderTable();
+                showAlert("All medicines cleared.", "warning");
+            }
+        }
+
+        (() => {
+            const form = document.getElementById('addMedicineForm');
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                const name = document.getElementById("medName").value.trim();
+                const qty = parseInt(document.getElementById("medQty").value);
+                const buy = parseFloat(document.getElementById("medBuy").value);
+                const sell = parseFloat(document.getElementById("medSell").value);
+                const expiry = document.getElementById("medExpiry").value;
+
+                medicines.push({ name, qty, buy, sell, expiry });
+                form.reset();
+                form.classList.remove('was-validated');
+                renderTable();
+                showAlert("Medicine added successfully!", "success");
+            });
+
+            document.getElementById("searchBox").addEventListener("input", renderTable);
+        })();
+
+        renderTable();
+    </script>
+</body>
+
+</html>
