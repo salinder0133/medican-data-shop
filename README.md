@@ -34,4 +34,4 @@ The website is **not live yet**. A live demo link will be added here in the futu
 
 Live Demo
 Visit the live site here:
-👉 https://salinder0133.github.io/Private-Booking-music-website/
+👉 [https://salinder0133.github.io/Private-Booking-music-website/](https://salinder0133.github.io/medican-data-shop/)
