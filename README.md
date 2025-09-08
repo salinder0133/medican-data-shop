@@ -35,3 +35,14 @@
 Live Demo
 Visit the live site here:
 👉 [https://salinder0133.github.io/Private-Booking-music-website/](https://salinder0133.github.io/medican-data-shop/)
+
+
+## 📜 License
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)  
+
+This project is licensed under the [MIT License](./LICENSE).  
+Copyright (c) 2025 **Salinder0133**  
+
+You are free to use, modify, and distribute this project for personal or commercial purposes.  
+**Credit is required** – please retain the copyright notice.
+
