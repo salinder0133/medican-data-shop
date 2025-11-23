@@ -9,7 +9,7 @@
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
 
-        /* UI Styles - No Change */
+        /* UI Styles */
         .stat-card { border: none; border-radius: 15px; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); transition: 0.3s; flex: 1; min-width: 220px; }
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1); }
         .card-icon { font-size: 2.5rem; opacity: 0.2; position: absolute; right: 20px; top: 20px; }
@@ -78,7 +78,7 @@
                 <h5 class="fw-bold text-primary mb-3">➕ Add New Stock</h5>
                 <form id="addMedicineForm" class="row g-3 needs-validation" novalidate>
                     <div class="col-md-3">
-                        <label class="form-label small text-muted">Medicine Name (Generic/Salt)</label>
+                        <label class="form-label small text-muted">Medicine Name</label>
                         <input type="text" class="form-control" id="medName" list="medSuggestions" autocomplete="off" required placeholder="Type medicine or salt name..." />
                         <datalist id="medSuggestions"></datalist>
                     </div>
@@ -127,15 +127,15 @@
         const transModal = new bootstrap.Modal(document.getElementById('transactionModal'));
         const delModal = new bootstrap.Modal(document.getElementById('deleteModal'));
 
-        // --- NEW: GENERIC NAMES ONLY (Salts) ---
+        // --- GENERIC NAMES ---
         const commonGenerics = [
-            "Paracetamol", "Ibuprofen", "Diclofenac", "Aceclofenac", "Tramadol", "Aspirin", // Pain & Fever
-            "Amoxicillin", "Azithromycin", "Ciprofloxacin", "Ofloxacin", "Cefixime", "Doxycycline", "Metronidazole", // Antibiotics
-            "Omeprazole", "Pantoprazole", "Rabeprazole", "Ranitidine", "Domperidone", "Ondansetron", // Acidity/Gastric
-            "Cetirizine", "Levocetirizine", "Chlorpheniramine", "Phenylephrine", "Montelukast", // Cold/Allergy
-            "Vitamin C", "Vitamin D3", "B-Complex", "Calcium Carbonate", "Zinc", "Folic Acid", "Multivitamin", // Supplements
-            "Metformin", "Amlodipine", "Telmisartan", "Atenolol", "Atorvastatin", "Losartan", "Glimepiride", // Chronic
-            "Povidone Iodine", "Silver Nitrate", "Clotrimazole", "Ketoconazole", "Luliconazole" // Skin/Topical
+            "Paracetamol", "Ibuprofen", "Diclofenac", "Aceclofenac", "Tramadol", "Aspirin", 
+            "Amoxicillin", "Azithromycin", "Ciprofloxacin", "Ofloxacin", "Cefixime", "Doxycycline", "Metronidazole", 
+            "Omeprazole", "Pantoprazole", "Rabeprazole", "Ranitidine", "Domperidone", "Ondansetron", 
+            "Cetirizine", "Levocetirizine", "Chlorpheniramine", "Phenylephrine", "Montelukast", 
+            "Vitamin C", "Vitamin D3", "B-Complex", "Calcium Carbonate", "Zinc", "Folic Acid", "Multivitamin", 
+            "Metformin", "Amlodipine", "Telmisartan", "Atenolol", "Atorvastatin", "Losartan", "Glimepiride", 
+            "Povidone Iodine", "Silver Nitrate", "Clotrimazole", "Ketoconazole", "Luliconazole"
         ];
 
         function saveData() { localStorage.setItem("medicines", JSON.stringify(medicines)); }
@@ -156,29 +156,19 @@
         medInput.addEventListener('input', function() {
             const query = this.value.toLowerCase();
             if (query.length < 2) return; 
-
             clearTimeout(debounceTimer); 
-
-            // 1. Local List
             medDataList.innerHTML = "";
             const localMatches = commonGenerics.filter(b => b.toLowerCase().includes(query));
             localMatches.forEach(match => {
-                const option = document.createElement('option');
-                option.value = match;
-                medDataList.appendChild(option);
+                const option = document.createElement('option'); option.value = match; medDataList.appendChild(option);
             });
-
-            // 2. Internet API
             debounceTimer = setTimeout(() => {
                 fetch(`https://clinicaltables.nlm.nih.gov/api/rxterms/v3/search?terms=${query}&ef=STRENGTHS_AND_FORMS`)
-                .then(res => res.json())
-                .then(data => {
+                .then(res => res.json()).then(data => {
                     if(data[1] && data[1].length > 0) {
                         data[1].forEach(name => {
                             if(!localMatches.includes(name)) {
-                                const option = document.createElement('option');
-                                option.value = name;
-                                medDataList.appendChild(option);
+                                const option = document.createElement('option'); option.value = name; medDataList.appendChild(option);
                             }
                         });
                     }
@@ -186,7 +176,7 @@
             }, 300);
         });
 
-        // --- RENDER & LOGIC ---
+        // --- RENDER TABLE ---
         function renderTable() {
             const tbody = document.getElementById("medicineTableBody");
             const search = document.getElementById("searchBox").value.toLowerCase();
@@ -226,6 +216,7 @@
             saveData();
         }
 
+        // --- MODAL ACTIONS ---
         function openTransModal(type, index) {
             currentTransType = type; currentItemIndex = index; const med = medicines[index];
             document.getElementById('transModalTitle').innerText = type === 'buy' ? "🛒 Buy Stock" : "💰 Sell Medicine";
@@ -305,10 +296,27 @@
             chartInstance = new Chart(ctx, { type: 'line', data: { labels: labels.length ? labels : ['No Sales'], datasets: [{ label: 'Profit', data: data.length ? data : [0], borderColor: '#0d6efd', backgroundColor: gradient, fill: true, tension: 0.4 }] } });
         }
 
+        // --- ADD MEDICINE LOGIC (With Duplicate Check) ---
         document.getElementById('addMedicineForm').addEventListener('submit', function (e) {
             e.preventDefault();
             if (!this.checkValidity()) { e.stopPropagation(); this.classList.add('was-validated'); return; }
-            medicines.push({ name: document.getElementById("medName").value, qty: parseInt(document.getElementById("medQty").value), buy: parseFloat(document.getElementById("medBuy").value), sell: parseFloat(document.getElementById("medSell").value), expiry: document.getElementById("medExpiry").value });
+
+            const name = document.getElementById("medName").value.trim();
+            // Check for duplicates (Case Insensitive)
+            const exists = medicines.some(m => m.name.toLowerCase() === name.toLowerCase());
+            
+            if (exists) {
+                showAlert("⚠️ Medicine already exists in inventory! Please use 'Buy' button to update stock.", "danger");
+                return; // Stop execution here
+            }
+
+            medicines.push({ 
+                name: name, 
+                qty: parseInt(document.getElementById("medQty").value), 
+                buy: parseFloat(document.getElementById("medBuy").value), 
+                sell: parseFloat(document.getElementById("medSell").value), 
+                expiry: document.getElementById("medExpiry").value 
+            });
             this.reset(); this.classList.remove('was-validated'); renderTable(); showAlert("Added successfully!");
         });
 
