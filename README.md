@@ -39,7 +39,7 @@
 ## 🚀 Live Demo
 
 Check out the live application here:  
-👉 **[Launch Apna Medical Manager Pro](https://salinder0133.github.io/Medican-data-shop-website/)**
+👉 **[Launch Apna Medical Manager Pro](https://salinder0133.github.io/medican-data-shop/)
 
 ---
 
