@@ -34,7 +34,7 @@
 
 Live Demo
 Visit the live site here:
-👉 [https://salinder0133.github.io/Private-Booking-music-website/](https://salinder0133.github.io/medican-data-shop/)
+👉 [https://salinder0133.github.io/Medican-data-shop-website/](https://salinder0133.github.io/medican-data-shop/)
 
 
 ## 📜 License
